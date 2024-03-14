@@ -1,0 +1,38 @@
+const express = require('express');
+const sqlite3 = require('sqlite3').verbose();
+
+const app = express();
+const port = 3000;
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
+
+const db = new sqlite3.Database('users.db');
+
+db.serialize(() => {
+    db.run('CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, email TEXT, age INTEGER, dob DATE)');
+});
+
+app.post('/submit', (req, res) => {
+    const { name, email, age, dob } = req.body;
+
+    db.run('INSERT INTO users (name, email, age, dob) VALUES (?, ?, ?, ?)', [name, email, age, dob], (err) => {
+        if (err) {
+            return res.status(500).send('Failed to store data');
+        }
+        res.redirect('/success.html');
+    });
+});
+
+app.get('/users', (req, res) => {
+    db.all('SELECT * FROM users', (err, rows) => {
+        if (err) {
+            return res.status(500).send('Failed to retrieve data');
+        }
+        res.send(rows);
+    });
+});
+
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
